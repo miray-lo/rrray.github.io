@@ -1,0 +1,510 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  Plane, 
+  MapPin, 
+  Utensils, 
+  ShoppingBag, 
+  Home, 
+  Camera, 
+  Coffee, 
+  CheckCircle2, 
+  Calendar,
+  Train,
+  Mountain,
+  Palmtree,
+  Clock,
+  ArrowRight,
+  Settings,
+  X,
+  Edit3
+} from 'lucide-react';
+
+// --- 預設資料 ---
+const DEFAULT_FLIGHT_INFO = {
+  outbound: {
+    date: "2026-02-20",
+    time: "14:45", 
+    flightNo: "JX840", 
+    airport: "TPE ➝ FUK"
+  },
+  inbound: {
+    date: "2026-02-25",
+    time: "18:00", 
+    flightNo: "BR105", 
+    airport: "FUK ➝ TPE"
+  }
+};
+
+const DEFAULT_MUST_DO = [
+  { id: 1, text: "Shin Shin 拉麵", category: "food", checked: false },
+  { id: 2, text: "梅枝餅 (太宰府)", category: "food", checked: false },
+  { id: 3, text: "柳川鰻魚飯", category: "food", checked: false },
+  { id: 4, text: "熊本馬肉料理", category: "food", checked: false },
+  { id: 5, text: "由布院 B-speak 蛋糕捲", category: "food", checked: false },
+  { id: 6, text: "日本草莓 (超市)", category: "food", checked: false },
+  { id: 7, text: "天神商圈藥妝", category: "shop", checked: false },
+  { id: 8, text: "熊本熊周邊商品", category: "shop", checked: false },
+  { id: 9, text: "機場福岡限定點心", category: "shop", checked: false },
+];
+
+export default function KyushuTripAppV2() {
+  const [activeTab, setActiveTab] = useState('itinerary');
+  const [selectedDay, setSelectedDay] = useState(0);
+  
+  // --- 狀態初始化 (優先從 LocalStorage 讀取) ---
+  const [flightInfo, setFlightInfo] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('kyushu_flight_info');
+      return saved ? JSON.parse(saved) : DEFAULT_FLIGHT_INFO;
+    }
+    return DEFAULT_FLIGHT_INFO;
+  });
+
+  const [checkList, setCheckList] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('kyushu_checklist');
+      return saved ? JSON.parse(saved) : DEFAULT_MUST_DO;
+    }
+    return DEFAULT_MUST_DO;
+  });
+   
+  const [isEditingFlight, setIsEditingFlight] = useState(false);
+  const [tempFlightInfo, setTempFlightInfo] = useState(DEFAULT_FLIGHT_INFO);
+
+  const [timeState, setTimeState] = useState({
+    days: 0, hours: 0, minutes: 0, seconds: 0, isStarted: false
+  });
+
+  // --- 監聽資料變更並存檔 ---
+  useEffect(() => {
+    localStorage.setItem('kyushu_flight_info', JSON.stringify(flightInfo));
+  }, [flightInfo]);
+
+  useEffect(() => {
+    localStorage.setItem('kyushu_checklist', JSON.stringify(checkList));
+  }, [checkList]);
+
+  // 動態產生行程資料 (根據 flightInfo 更新)
+  const itineraryData = useMemo(() => [
+    {
+      day: 1,
+      date: "2/20 (五)",
+      title: "飛去福岡 ✈️",
+      desc: "抵達九州，開啟美食之旅",
+      details: [
+        { time: flightInfo.outbound.time, text: `起飛！${flightInfo.outbound.flightNo} (${flightInfo.outbound.airport})`, icon: Plane, highlight: true },
+        { time: "18:00", text: "抵達福岡機場，領行李、買車票", icon: MapPin },
+        { time: "晚餐", text: "Shin Shin 拉麵 (博多必吃豚骨拉麵)", icon: Utensils, highlight: true },
+        { time: "住宿", text: "福岡市區飯店", icon: Home }
+      ],
+      color: "bg-blue-100 text-blue-800"
+    },
+    {
+      day: 2,
+      date: "2/21 (六)",
+      title: "由布院散步 🌿",
+      desc: "享受溫泉小鎮的寧靜與晨霧",
+      details: [
+        { time: "09:00", text: "搭乘由布院之森 (記得先劃位)", icon: Train },
+        { time: "上午", text: "金鱗湖晨霧 & 湯之坪街道散策", icon: Camera, highlight: true },
+        { time: "點心", text: "必吃：B-speak 蛋糕捲、金賞可樂餅", icon: Coffee },
+        { time: "晚餐", text: "超市大採購 (草莓/熟食回飯店開趴)", icon: ShoppingBag },
+        { time: "住宿", text: "福岡市區飯店", icon: Home }
+      ],
+      color: "bg-green-100 text-green-800"
+    },
+    {
+      day: 3,
+      date: "2/22 (日)",
+      title: "拜拜 & 買爆 🛍️",
+      desc: "太宰府祈福與天神商圈血拼",
+      details: [
+        { time: "上午", text: "太宰府天滿宮 (必吃梅枝餅)", icon: MapPin },
+        { time: "下午", text: "天神商圈 瘋狂購物 (藥妝/電器)", icon: ShoppingBag, highlight: true },
+        { time: "晚餐", text: "人氣燒肉 (滋滋滋~)", icon: Utensils },
+        { time: "住宿", text: "福岡市區飯店", icon: Home }
+      ],
+      color: "bg-pink-100 text-pink-800"
+    },
+    {
+      day: 4,
+      date: "2/23 (一)",
+      title: "柳川 & 熊本城 🛶",
+      desc: "水都遊船與拜訪熊本部長",
+      details: [
+        { time: "上午", text: "柳川遊船 + 必吃鰻魚飯", icon: Palmtree },
+        { time: "下午", text: "移動去熊本城找熊本熊部長", icon: Train, highlight: true },
+        { time: "晚上", text: "熊本屋台村體驗", icon: Utensils },
+        { time: "住宿", text: "熊本市區飯店", icon: Home }
+      ],
+      color: "bg-orange-100 text-orange-800"
+    },
+    {
+      day: 5,
+      date: "2/24 (二)",
+      title: "火山大冒險 🌋",
+      desc: "壯觀的阿蘇火山與特色料理",
+      details: [
+        { time: "行程", text: "阿蘇火山 & 草千里騎馬", icon: Mountain, highlight: true },
+        { time: "晚餐", text: "馬櫻 (馬肉料理初體驗!)", icon: Utensils },
+        { time: "住宿", text: "熊本 (或回福岡)", icon: Home }
+      ],
+      color: "bg-red-100 text-red-800"
+    },
+    {
+      day: 6,
+      date: "2/25 (三)",
+      title: "回家囉 🏠",
+      desc: "滿載而歸",
+      details: [
+        { time: "上午", text: "機場最後補貨 (明太子/拉麵包)", icon: ShoppingBag },
+        { time: flightInfo.inbound.time, text: `回程班機 ${flightInfo.inbound.flightNo} (${flightInfo.inbound.airport})`, icon: Plane, highlight: true },
+        { time: "❤", text: "帶著戰利品與回憶到家", icon: Home }
+      ],
+      color: "bg-indigo-100 text-indigo-800"
+    }
+  ], [flightInfo]);
+
+  // 倒數計時邏輯 (依賴 flightInfo)
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const flightDateTimeString = `${flightInfo.outbound.date}T${flightInfo.outbound.time}:00`;
+      const tripDate = new Date(flightDateTimeString);
+      const now = new Date();
+      const difference = tripDate - now;
+
+      if (difference > 0) {
+        const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
+        const minutes = Math.floor((difference / 1000 / 60) % 60);
+        const seconds = Math.floor((difference / 1000) % 60);
+        setTimeState({ days, hours, minutes, seconds, isStarted: false });
+      } else {
+        setTimeState({ days: 0, hours: 0, minutes: 0, seconds: 0, isStarted: true });
+      }
+    };
+
+    calculateTimeLeft();
+    const timer = setInterval(calculateTimeLeft, 1000);
+    return () => clearInterval(timer);
+  }, [flightInfo]);
+
+  const toggleCheck = (id) => {
+    setCheckList(checkList.map(item => 
+      item.id === id ? { ...item, checked: !item.checked } : item
+    ));
+  };
+
+  const handleSaveFlightInfo = () => {
+    setFlightInfo(tempFlightInfo);
+    setIsEditingFlight(false);
+  };
+
+  const handleEditClick = () => {
+    setTempFlightInfo(flightInfo);
+    setIsEditingFlight(true);
+  }
+
+  // --- UI 部分 (保持你的美好設計) ---
+  return (
+    <div className="max-w-md mx-auto bg-gray-50 min-h-screen pb-24 font-sans relative">
+      
+      {/* Hero Section with Countdown */}
+      <div className="bg-gradient-to-br from-rose-500 to-orange-400 text-white p-6 rounded-b-[2.5rem] shadow-xl relative overflow-hidden transition-all duration-500">
+        {/* Background Patterns */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -mr-10 -mt-10"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-white opacity-10 rounded-full -ml-10 -mb-10"></div>
+        
+        <div className="relative z-10 text-center">
+          <div className="flex justify-between items-start mb-1">
+             <div className="w-8"></div> {/* Spacer for centering */}
+             <h1 className="text-xl font-bold tracking-wide">九州快樂自由行 🇯🇵</h1>
+             <button 
+               onClick={handleEditClick}
+               className="w-8 h-8 flex items-center justify-center bg-white/20 rounded-full hover:bg-white/30 transition-colors"
+               title="設定航班"
+             >
+               <Settings size={16} />
+             </button>
+          </div>
+          
+          <div className="flex justify-center items-center gap-2 text-rose-100 text-sm mb-6">
+            <Calendar size={14} /> 
+            <span>2026.02.20 - 02.25</span>
+          </div>
+
+          {/* Big Countdown Card */}
+          <div className="bg-white/20 backdrop-blur-md rounded-2xl p-4 border border-white/30 hover:bg-white/25 transition-all">
+              {timeState.isStarted ? (
+                <div className="py-2">
+                  <p className="text-2xl font-bold animate-pulse">旅程進行中！✈️</p>
+                  <p className="text-sm opacity-90">Enjoy Kyushu!</p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-xs uppercase tracking-widest opacity-80 mb-2">距離起飛還有</p>
+                  <div className="flex justify-center gap-3">
+                     <div className="flex flex-col items-center">
+                       <span className="text-3xl font-black">{timeState.days}</span>
+                       <span className="text-[10px] uppercase">天</span>
+                     </div>
+                     <span className="text-2xl font-bold opacity-50">:</span>
+                     <div className="flex flex-col items-center">
+                       <span className="text-3xl font-black">{String(timeState.hours).padStart(2, '0')}</span>
+                       <span className="text-[10px] uppercase">時</span>
+                     </div>
+                     <span className="text-2xl font-bold opacity-50">:</span>
+                     <div className="flex flex-col items-center">
+                       <span className="text-3xl font-black">{String(timeState.minutes).padStart(2, '0')}</span>
+                       <span className="text-[10px] uppercase">分</span>
+                     </div>
+                     <span className="text-2xl font-bold opacity-50">:</span>
+                     <div className="flex flex-col items-center">
+                       <span className="text-3xl font-black min-w-[40px]">{String(timeState.seconds).padStart(2, '0')}</span>
+                       <span className="text-[10px] uppercase">秒</span>
+                     </div>
+                  </div>
+                </div>
+              )}
+          </div>
+          
+          <div className="mt-4 flex justify-between text-xs font-medium px-2 opacity-90">
+             <div className="flex items-center gap-1">
+               <Plane size={12} className="rotate-[-45deg]" /> 
+               {flightInfo.outbound.time} TPE
+             </div>
+             <ArrowRight size={12} />
+             <div className="flex items-center gap-1">
+               <Plane size={12} className="rotate-45" /> 
+               FUK
+             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="px-4 -mt-6 relative z-20">
+        
+        {/* Tab Navigation */}
+        <div className="flex gap-2 mb-4 bg-white p-1.5 rounded-xl shadow-md">
+          <button 
+            onClick={() => setActiveTab('itinerary')}
+            className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'itinerary' ? 'bg-gray-800 text-white shadow-lg' : 'text-gray-400 hover:bg-gray-50'}`}
+          >
+            <Calendar size={16} /> 每日行程
+          </button>
+          <button 
+            onClick={() => setActiveTab('checklist')}
+            className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'checklist' ? 'bg-rose-500 text-white shadow-lg' : 'text-gray-400 hover:bg-gray-50'}`}
+          >
+            <CheckCircle2 size={16} /> 必吃必買
+          </button>
+        </div>
+
+        {activeTab === 'itinerary' && (
+          <div className="space-y-4 animate-fadeIn">
+            {/* Day Selector */}
+            <div className="flex overflow-x-auto pb-2 gap-3 hide-scrollbar px-1">
+              {itineraryData.map((day, index) => (
+                <button
+                  key={day.day}
+                  onClick={() => setSelectedDay(index)}
+                  className={`flex-shrink-0 w-14 h-[4.5rem] rounded-2xl flex flex-col items-center justify-center transition-all shadow-sm ${
+                    selectedDay === index 
+                      ? 'bg-gray-800 text-white scale-105 shadow-md' 
+                      : 'bg-white text-gray-400 border border-gray-100'
+                  }`}
+                >
+                  <span className="text-[10px] font-bold opacity-60">DAY</span>
+                  <span className="text-xl font-black">{day.day}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Selected Day Details */}
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden pb-4 min-h-[300px]">
+              <div className={`p-5 ${itineraryData[selectedDay].color} bg-opacity-20`}>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-wider opacity-60 bg-white/50 px-2 py-1 rounded-full">{itineraryData[selectedDay].date}</span>
+                    <h2 className="text-2xl font-black mt-2 leading-tight">
+                      {itineraryData[selectedDay].title}
+                    </h2>
+                  </div>
+                  <div className={`p-3 rounded-full bg-white/50 backdrop-blur`}>
+                    {selectedDay === 0 ? <Plane size={24} className="text-blue-600"/> : 
+                     selectedDay === 4 ? <Mountain size={24} className="text-red-600"/> :
+                     <MapPin size={24} className="text-gray-600"/>}
+                  </div>
+                </div>
+                <p className="text-sm font-medium mt-2 opacity-80">{itineraryData[selectedDay].desc}</p>
+              </div>
+              
+              <div className="p-5 space-y-0">
+                {itineraryData[selectedDay].details.map((detail, idx) => (
+                  <div key={idx} className="flex gap-4 relative pb-8 last:pb-0">
+                    {/* Vertical Line */}
+                    {idx !== itineraryData[selectedDay].details.length - 1 && (
+                      <div className="absolute left-[19px] top-10 bottom-0 w-0.5 bg-gray-100"></div>
+                    )}
+                    
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 z-10 shadow-sm border-2 border-white ${detail.highlight ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                      <detail.icon size={18} />
+                    </div>
+                    
+                    <div className="flex-1 pt-1">
+                      <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">
+                        {detail.time}
+                      </span>
+                      <p className={`text-gray-800 leading-snug ${detail.highlight ? 'font-bold text-lg' : 'font-medium text-base'}`}>
+                        {detail.text}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'checklist' && (
+          <div className="space-y-4 animate-fadeIn pb-10">
+            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+              <h3 className="text-lg font-black text-gray-800 mb-5 flex items-center gap-2">
+                <Utensils className="text-orange-500 fill-orange-100" size={24} />
+                美食攻略
+              </h3>
+              <div className="space-y-4">
+                {checkList.filter(i => i.category === 'food').map(item => (
+                  <label key={item.id} className="flex items-start gap-3 cursor-pointer group">
+                    <div className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${item.checked ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}>
+                      {item.checked && <CheckCircle2 size={14} className="text-white" />}
+                    </div>
+                    <input 
+                      type="checkbox" 
+                      className="hidden" 
+                      checked={item.checked} 
+                      onChange={() => toggleCheck(item.id)}
+                    />
+                    <span className={`text-base font-medium transition-all ${item.checked ? 'text-gray-300 line-through decoration-2' : 'text-gray-700'}`}>
+                      {item.text}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+              <h3 className="text-lg font-black text-gray-800 mb-5 flex items-center gap-2">
+                <ShoppingBag className="text-rose-500 fill-rose-100" size={24} />
+                購物清單
+              </h3>
+              <div className="space-y-4">
+                {checkList.filter(i => i.category === 'shop').map(item => (
+                  <label key={item.id} className="flex items-start gap-3 cursor-pointer group">
+                    <div className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${item.checked ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}>
+                      {item.checked && <CheckCircle2 size={14} className="text-white" />}
+                    </div>
+                    <input 
+                      type="checkbox" 
+                      className="hidden" 
+                      checked={item.checked} 
+                      onChange={() => toggleCheck(item.id)}
+                    />
+                    <span className={`text-base font-medium transition-all ${item.checked ? 'text-gray-300 line-through decoration-2' : 'text-gray-700'}`}>
+                      {item.text}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Flight Edit Modal */}
+      {isEditingFlight && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-4 bg-gray-800 text-white flex justify-between items-center">
+              <h3 className="font-bold flex items-center gap-2">
+                <Settings size={18} /> 設定航班資訊
+              </h3>
+              <button onClick={() => setIsEditingFlight(false)} className="text-gray-400 hover:text-white">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Outbound */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-rose-500 font-bold text-sm uppercase tracking-wider">
+                  <Plane size={16} className="rotate-[-45deg]" /> 去程 (Outbound)
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-gray-500 block mb-1">班機代號</label>
+                      <input 
+                        type="text" 
+                        value={tempFlightInfo.outbound.flightNo}
+                        onChange={(e) => setTempFlightInfo({...tempFlightInfo, outbound: {...tempFlightInfo.outbound, flightNo: e.target.value}})}
+                        className="w-full border rounded-lg p-2 text-sm font-medium focus:ring-2 focus:ring-rose-500 outline-none"
+                        placeholder="如 BR106"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 block mb-1">起飛時間</label>
+                      <input 
+                        type="time" 
+                        value={tempFlightInfo.outbound.time}
+                        onChange={(e) => setTempFlightInfo({...tempFlightInfo, outbound: {...tempFlightInfo.outbound, time: e.target.value}})}
+                        className="w-full border rounded-lg p-2 text-sm font-medium focus:ring-2 focus:ring-rose-500 outline-none"
+                      />
+                    </div>
+                </div>
+              </div>
+
+              <hr className="border-gray-100" />
+
+              {/* Inbound */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-indigo-500 font-bold text-sm uppercase tracking-wider">
+                  <Plane size={16} className="rotate-45" /> 回程 (Inbound)
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-gray-500 block mb-1">班機代號</label>
+                      <input 
+                        type="text" 
+                        value={tempFlightInfo.inbound.flightNo}
+                        onChange={(e) => setTempFlightInfo({...tempFlightInfo, inbound: {...tempFlightInfo.inbound, flightNo: e.target.value}})}
+                        className="w-full border rounded-lg p-2 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none"
+                        placeholder="如 BR105"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 block mb-1">起飛時間</label>
+                      <input 
+                        type="time" 
+                        value={tempFlightInfo.inbound.time}
+                        onChange={(e) => setTempFlightInfo({...tempFlightInfo, inbound: {...tempFlightInfo.inbound, time: e.target.value}})}
+                        className="w-full border rounded-lg p-2 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none"
+                      />
+                    </div>
+                </div>
+              </div>
+
+              <button 
+                onClick={handleSaveFlightInfo}
+                className="w-full bg-gray-800 text-white font-bold py-3 rounded-xl hover:bg-gray-900 transition-colors shadow-lg shadow-gray-200"
+              >
+                儲存設定
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
